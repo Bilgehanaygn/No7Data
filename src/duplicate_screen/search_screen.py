@@ -150,10 +150,12 @@ class SearchScreen():
 
 
 
-  def search_screen(self, root):
+  def search_screen(self, root, img):
     self.search_screen = Toplevel(root)
     self.search_screen.geometry("850x600")
     self.search_screen.title("Search For Duplicate")
+    self.search_screen.iconphoto(False, img)
+
     self.bring_widgets()
   
             

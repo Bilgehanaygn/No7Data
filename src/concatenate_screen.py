@@ -1,8 +1,7 @@
 from tkinter import Label, LabelFrame, Button, Entry, END, Toplevel
 from tkinter.messagebox import showinfo, showerror
 import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
+
 
 
 class Concatenate:
@@ -17,20 +16,37 @@ class Concatenate:
         self.column_numbers = None
         self.total_data = None
         
-
-    def download_concatted(self):
+    
+    def download_matched_helper(self):
         out_path = self.file_manager.dialog_download(self.concatenate_screen)
-        if(out_path != ""):
-            if(out_path.split('.')[len(out_path.split('.')) - 1].lower() != 'xlsx' and out_path.split('.')[len(out_path.split('.')) - 1].lower() != 'csv'):
-                out_path = out_path + '.xlsx'
-            else:
-                if(out_path.split('.')[len(out_path.split('.')) - 1].lower() == 'xlsx'):      
-                    showinfo("Success", "Excel file is downloading.", parent=self.concatenate_screen)
-                    self.self.result_df.to_excel(out_path, index=False)
-                elif(out_path.split('.')[len(out_path.split('.')) - 1].lower() == 'csv'):
-                    showinfo("Success", "CSV file is downloading.", parent=self.concatenate_screen)
-                    self.result_df.to_csv(out_path, index=False)
-            showinfo("Success", "File downloaded.", parent=self.concatenate_screen)
+        self.file_manager.download_file(self.concatenate_screen, self.result_df, out_path)
+
+
+    def download_unmatched_helper(self):
+        try:
+            i0 = pd.MultiIndex.from_frame(self.result_df)
+            i1 = pd.MultiIndex.from_frame(self.df_1)
+            i2 = pd.MultiIndex.from_frame(self.df_2)
+
+            self.unmatched_df = self.df_1[~i1.isin(i0)]
+            self.unmatched_df = self.unmatched_df.append(self.df_2[~i2.isin(i0)])
+
+
+            if(self.third_loaded):
+                i3 = pd.MultiIndex.from_frame(self.df_3)
+                self.unmatched_df = self.unmatched_df.append(self.df_3[~i3.isin(i0)])
+
+        except:
+            showerror('No field selected', 'No field selected', parent=self.concatenate_screen)
+        out_path = self.file_manager.dialog_download(self.concatenate_screen)
+        self.file_manager.download_file(self.concatenate_screen, self.unmatched_df, out_path)
+
+    def remove_file(self):
+        if(self.third_loaded):
+            self.third_loaded = False
+            del[self.df_3]
+            self.file_manager.clear_tv(self.tv_c_3)
+
 
 
     def bring_column_nums(self):
@@ -38,9 +54,7 @@ class Concatenate:
         self.column_screen.geometry("750x600")
         self.column_screen.title("Field Numbers")
 
-        #Destroy childrens before adding new column names
-        
-        self.file_manager.destroy_children(self.column_numbers)
+
         
         self.column_numbers = LabelFrame(self.column_screen, text="Field Numbers -> Field Names")
         self.column_numbers.pack()
@@ -66,20 +80,30 @@ class Concatenate:
         i2 = pd.MultiIndex.from_frame(self.df_2[self.cols_names])
 
         self.result_df = self.df_1[i1.isin(i0)]
+        new_col = ["File 1" for i in range(self.result_df.shape[0])]
+        
         self.result_df = self.result_df.append(self.df_2[i2.isin(i0)])
-
+        new_col = new_col + ["File 2" for i in range(self.result_df.shape[0] - len(new_col))]
+        print(new_col)
         if(self.third_loaded):
             i3 = pd.MultiIndex.from_frame(self.df_3[self.cols_names])
             self.result_df = self.result_df.append(self.df_3[i3.isin(i0)])
+            new_col = new_col + ["File 3" for i in range (self.result_df.shape[0] - len(new_col))]
 
-
+        self.result_df.insert(loc=0, column="Related File", value = new_col)
+        
         self.result_df.sort_values(by=[self.result_df.columns[i] for i in range(self.result_df.shape[1])], inplace=True)
         self.file_manager.insert_tv(self.tv_c_result, self.result_df)
 
-        self.download_button = Button(self.concatenate_screen, text='Download\nConcatenated File', command=self.download_concatted, 
+        self.download_button = Button(self.concatenate_screen, text='Download\nMatched File', command=self.download_matched_helper, 
         bg='#597b45', fg='white')
         self.download_button.pack()
-        self.download_button.place(relx = 0.35, rely = 0.80, anchor = 'center')
+        self.download_button.place(relx = 0.30, rely = 0.63, anchor = 'center')
+
+        self.download_button = Button(self.concatenate_screen, text='Download\nUnmatched File', command=self.download_unmatched_helper, 
+        bg='#597b45', fg='white')
+        self.download_button.pack()
+        self.download_button.place(relx = 0.40, rely = 0.63, anchor = 'center')
 
         if(self.total_data == None):
             self.total_data = Label(self.concatenate_screen, text="Total: " + str(self.result_df.shape[0]), font=('Helvatical bold',11))
@@ -90,7 +114,7 @@ class Concatenate:
 
 
     def bring_apply_field(self):
-        apply_frame = LabelFrame(self.concatenate_screen, text="Apply Fields")
+        apply_frame = LabelFrame(self.concatenate_screen, text="Select Fields")
         apply_frame.pack()
         apply_frame.place(height=140, width=285, rely=0.80, relx=0.0175, anchor="sw")
         
@@ -133,12 +157,12 @@ class Concatenate:
 
         apply_button = Button(apply_frame, text='Apply Fields', command=apply_button_helper, bg='#5b86b0')
         apply_button.pack()
-        apply_button.place(relx = 0.585, rely = 0.70, anchor = 'sw')
+        apply_button.place(relx = 0.56, rely = 0.70, anchor = 'sw')
 
-        self.show_columns_button = Button(self.concatenate_screen, text='Show Fields', 
+        self.show_columns_button = Button(apply_frame, text='Show Fields', 
                     command=self.bring_column_nums, bg='#5b86b0')
         self.show_columns_button.pack()
-        self.show_columns_button.place(relx = 0.16, rely = 0.85, anchor = 'nw')
+        self.show_columns_button.place(relx = 0.05, rely = 0.70, anchor = 'sw')
 
 
 
@@ -189,10 +213,12 @@ class Concatenate:
             return None
 
 
-    def concatenate_screen(self,root):
+    def concatenate_screen(self,root, img):
         self.concatenate_screen = Toplevel(root)
         self.concatenate_screen.geometry("1350x650")
         self.concatenate_screen.title("Concatenate Files")
+        self.concatenate_screen.iconphoto(False, img)
+
 
         self.open_area_1 = self.file_manager.create_open_area(self.concatenate_screen, 80, 285, 0.0175, 0.425, 
         frame_text="Upload First File", callback=self.load_data_helper, params=[1])
@@ -202,10 +228,16 @@ class Concatenate:
         frame_text="Upload Third File", callback=self.load_data_helper, params=[3])
         self.open_area_4 = self.file_manager.create_open_area(self.concatenate_screen, 80, 285, 0.7675, 0.425, 
         frame_text="Upload Reference File", callback=self.load_data_helper, params=[4])
+        self.open_area_4["bg"] = "#D4E1FF"
 
-        self.tv_c_1 = self.file_manager.create_treeview(self.concatenate_screen, 254, 290, 0.0175, 0)
-        self.tv_c_2 = self.file_manager.create_treeview(self.concatenate_screen, 254, 290, 0.2675, 0)
-        self.tv_c_3 = self.file_manager.create_treeview(self.concatenate_screen, 254, 290, 0.5175, 0)
+        self.tv_c_1 = self.file_manager.create_treeview(self.concatenate_screen, 254, 290, 0.0175, 0, frame_text="Data Frame 1")
+        self.tv_c_2 = self.file_manager.create_treeview(self.concatenate_screen, 254, 290, 0.2675, 0, frame_text="Data Frame 2" )
+        self.tv_c_3 = self.file_manager.create_treeview(self.concatenate_screen, 254, 290, 0.5175, 0, frame_text="Data Frame 3")
         self.tv_c_4 = self.file_manager.create_treeview(self.concatenate_screen, 254, 290, 0.7675, 0, frame_text = "Reference File",
-        borderWidth=10)
+        borderWidth=10, reference=True)
+        
+
+        button_remove = Button(self.open_area_3, text="Remove File", command=lambda: self.remove_file(), bg='#5b86b0')
+        button_remove.pack()
+        button_remove.place(rely=0.46, relx=0.68)
         

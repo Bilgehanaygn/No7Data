@@ -1,5 +1,6 @@
-from tkinter import filedialog, ttk, LabelFrame, Button, Scrollbar
+from tkinter import filedialog, ttk, LabelFrame, Button, Scrollbar, Toplevel, HORIZONTAL, Label
 from tkinter.messagebox import showinfo, showerror
+from tkinter.ttk import Progressbar
 import pandas as pd
 
 
@@ -17,21 +18,40 @@ class FileManager():
         return None
 
 
+    def download_file(self, parent_screen, given_df, out_path):
+        if(out_path != ""):
+            if(out_path.split('.')[len(out_path.split('.')) - 1].lower() != 'xlsx' and out_path.split('.')[len(out_path.split('.')) - 1].lower() != 'csv'):
+                out_path = out_path + '.xlsx'
+                given_df.to_excel(out_path, index=False)
+            else:
+                if(out_path.split('.')[len(out_path.split('.')) - 1].lower() == 'xlsx'):      
+                    showinfo("Success", "Excel file is downloading.", parent=parent_screen)
+                    given_df.to_excel(out_path, index=False)
+                elif(out_path.split('.')[len(out_path.split('.')) - 1].lower() == 'csv'):
+                    showinfo("Success", "CSV file is downloading.", parent=parent_screen)
+                    given_df.to_csv(out_path, index=False)
+            showinfo("Success", "File downloaded.", parent=parent_screen)
+
+
     def dialog_download(self, parent_screen):
         f_types = [('All Files', '*.*'), ('xlsx files', '*.xlsx'), ('CSV files',"*.csv")]
         return filedialog.asksaveasfilename(initialdir="/", parent=parent_screen, title="Select location", filetype=f_types)
 
+    def process_frame(self, df):
+        # process data frame
+        return len(df)
 
     def load_data(self, f_label, parent_screen, show_success):
         """If the file selected is valid this will load the file into the Treeview"""
         showinfo("Loading", "Excel file is loading, wait until loading is done.", parent=parent_screen)
         file_path = f_label["text"]
         try:
-            excel_filename = r"{}".format(file_path)
-            if excel_filename[-4:] == ".csv":
-                df = pd.read_csv(excel_filename)
+            filename = r"{}".format(file_path)
+            if filename[-4:] == ".csv":
+                df = pd.read_csv(filename)
+                
             else:
-                df = pd.read_excel(excel_filename)
+                df = pd.read_excel(filename)
             
             df = df.applymap(str)
             if(show_success):
@@ -42,7 +62,7 @@ class FileManager():
             showerror("Information", "The file you have chosen is invalid", parent=parent_screen)
             return None
         except FileNotFoundError:
-            showerror("Information", f"No such file as {file_path}", parent=parent_screen)
+            showerror("Information", f"Please select a file.", parent=parent_screen)
             return None
 
 
@@ -50,6 +70,19 @@ class FileManager():
 
     #WIDGET#WIDGET#WIDGET#WIDGET#WIDGET#WIDGET
 
+
+    def progress_bar(self, root):
+        progress_bar = Toplevel(root)
+        progress_bar.geometry("250x125")
+        progress_bar.title("Progress.")
+
+        label1 = Label(progress_bar, text="Loading...")
+        label1.pack()
+        label1.place(relx=0.4, rely=0.5)
+
+        pb1 = Progressbar(progress_bar, orient=HORIZONTAL, length=100, mode='indeterminate')
+        pb1.pack()
+        pb1.place(relx=0.25, rely=0.20)
 
 
 
@@ -87,7 +120,7 @@ class FileManager():
         
 
         # The file/file path text
-        label_file = ttk.Label(file_frame, text="No File Selected")
+        label_file = Label(file_frame, text="No File Selected")
         label_file.place(rely=0, relx=0)
 
         default_params = [label_file]
@@ -95,34 +128,35 @@ class FileManager():
             params=default_params
         else: # may need some edit
             params= default_params + params
-            
-            
-        
 
         
         # Buttons
         button_browse = Button(file_frame, text=browse_text, command=lambda: self.dialog_upload(label_file, parent_screen), bg='#5b86b0')
         button_browse.pack()
-        button_browse.place(rely=0.46, relx=0.30)
+        button_browse.place(rely=0.46, relx=0.05)
         
         button_load = Button(file_frame, text=load_text, command=lambda: callback(*params), bg='#5b86b0')
         button_load.pack()
-        button_load.place(rely=0.46, relx=0.05)
+        button_load.place(rely=0.46, relx=0.38)
 
         return file_frame
 
 
-    def create_treeview(self, parent_screen, height, width, relx, rely, anchor="nw", frame_text="Excel Data", borderWidth=2):
+    def create_treeview(self, parent_screen, height, width, relx, rely, anchor="nw", frame_text="Data Frame", borderWidth=2, reference=False):
         # Frame 1 for TreeView
         frame_c = LabelFrame(parent_screen, text=frame_text, borderwidth=borderWidth)
         frame_c.pack()
         frame_c.place(height=height, width=width, relx=relx, rely=rely, anchor=anchor)
+        if(reference):
+            frame_c["font"] = ('Helvatical bold',11)
+            frame_c["bg"] = "#D4E1FF"
 
         ## Treeview Widget
         style = ttk.Style(parent_screen)
         style.theme_use("clam")
         style.configure("Treeview.Heading", background="silver")
         tv_c = ttk.Treeview(frame_c)
+        
         
         
         tv_c.place(relheight=1, relwidth=1) # set the height and width of the widget to 100% of its container (frame_c_1).
