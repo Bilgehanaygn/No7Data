@@ -11,7 +11,7 @@ class Cleansing():
         self.field_selected = False
         self.selected_columns = []
         self.data_loaded = False
-        self.removed_df = None
+        self.removed_df_exist = False
 
     def convert_to_str(self):
         if(self.field_selected):
@@ -81,6 +81,7 @@ class Cleansing():
                 self.last_process = 'Remove NaNs'
                 i1 = pd.MultiIndex.from_frame(self.df) # after action
                 self.removed_df = self.pre_df[~i0.isin(i1)] # before after difference
+                self.removed_df_exist = True
                 self.bring_answer_frame()
 
 
@@ -99,10 +100,10 @@ class Cleansing():
         if(self.field_selected):
             if(not self.df.empty):
                 self.pre_df = self.df.copy()
-                self.df[self.selected_columns] = self.df[self.selected_columns].replace('nan', '-')
+                self.df[self.selected_columns] = self.df[self.selected_columns].replace('nan', ' ')
                 self.file_manager.insert_tv(self.tv_c_1, self.df)
                 self.difference = "-"
-                self.last_process = 'Fill NaNs With "-"'
+                self.last_process = 'Fill NaNs With " "'
                 self.bring_answer_frame()
 
 
@@ -118,6 +119,7 @@ class Cleansing():
                 self.last_process = "Remove Duplicates (Keep First Occurrence)"
                 i1 = pd.MultiIndex.from_frame(self.df) # after action
                 self.removed_df = self.pre_df[~i0.isin(i1)] # before after difference
+                self.removed_df_exist = True
                 self.bring_answer_frame()
 
     def duplicates_last(self):
@@ -132,6 +134,7 @@ class Cleansing():
                 self.last_process = "Remove Duplicates (Keep Last Occurrence)"
                 i1 = pd.MultiIndex.from_frame(self.df) # after action
                 self.removed_df = self.pre_df[~i0.isin(i1)] # before after difference
+                self.removed_df_exist = True
                 self.bring_answer_frame()
 
     def duplicates_all(self):
@@ -146,13 +149,14 @@ class Cleansing():
                 self.last_process = "Remove Duplicates (Don't Keep Any)"
                 i1 = pd.MultiIndex.from_frame(self.df) # after action
                 self.removed_df = self.pre_df[~i0.isin(i1)] # before after difference
+                self.removed_df_exist = True
                 self.bring_answer_frame()
 
 
 
 
     def download_removed_helper(self):
-        if(self.removed_df != None):
+        if(self.removed_df_exist):
             out_path = self.file_manager.dialog_download(self.cleansing_screen)
             self.file_manager.download_file(self.cleansing_screen, self.removed_df, out_path)
 
@@ -262,6 +266,7 @@ class Cleansing():
 
     def load_data_helper(self, file_label):
         self.df = self.file_manager.load_data(file_label, self.cleansing_screen, True)
+        self.label_shape['text'] = str(self.df.shape[0]) + " rows uploaded."
         self.file_manager.insert_tv(self.tv_c_1, self.df)
         
         self.data_loaded = True
@@ -273,6 +278,9 @@ class Cleansing():
         self.label2["text"] = "Removed Rows: "
         self.e_columns.delete(0, END)
         self.e_columns.insert(0, 'Ex:1 2 4 7')
+
+    def find_nans(self):
+        print('will fill')
         
 
 
@@ -302,6 +310,16 @@ class Cleansing():
         self.label2.pack()
         self.label2.place(relx=0.025, rely=0.35)
         self.answer_frame_exist=True
+
+        self.download_button = Button(self.answer_frame, text='Download\nCleansed Data', command=self.download_cleaned, 
+        bg='#597b45', fg='white')
+        self.download_button.pack()
+        self.download_button.place(relx = 0.075, rely = 0.60, width=125, height=40, anchor = 'nw')
+
+        self.download_button = Button(self.answer_frame, text='Download\nRemoved Data', command=self.download_removed_helper, 
+        bg='#597b45', fg='white')
+        self.download_button.pack()
+        self.download_button.place(relx = 0.375, rely = 0.60, width=125, height=40, anchor = 'nw')
 
         self.undo_button = Button(self.answer_frame, text='Undo', command=self.undo, 
         bg='#597b45', fg='white')
@@ -336,7 +354,7 @@ class Cleansing():
         convert_int_button.pack()
         convert_int_button.place(relx = 0.375, rely = 0.30, width=125, height=40,anchor = 'nw')
 
-        convert_float_button = Button(self.cleansing_buttons_frame, text='Fill NaNs with "-"', command=self.fill_nans_str, bg='#5b86b0')
+        convert_float_button = Button(self.cleansing_buttons_frame, text='Fill NaNs with " "', command=self.fill_nans_str, bg='#5b86b0')
         convert_float_button.pack()
         convert_float_button.place(relx = 0.675, rely = 0.30, width=125, height=40,anchor = 'nw')
 
@@ -354,15 +372,11 @@ class Cleansing():
         remove_duplicates_all.pack()
         remove_duplicates_all.place(relx = 0.675, rely = 0.50, width=125, height=40,anchor = 'nw')
 
-        self.download_button = Button(self.cleansing_buttons_frame, text='Download\nCleansed Data', command=self.download_cleaned, 
-        bg='#597b45', fg='white')
-        self.download_button.pack()
-        self.download_button.place(relx = 0.375, rely = 0.80, width=125, height=40, anchor = 'nw')
 
-        self.download_button = Button(self.cleansing_buttons_frame, text='Download\nRemoved Data', command=self.download_removed_helper, 
-        bg='#597b45', fg='white')
-        self.download_button.pack()
-        self.download_button.place(relx = 0.675, rely = 0.80, width=125, height=40, anchor = 'nw')
+        find_nan_button = Button(self.cleansing_buttons_frame, text="Find NaNs", command=self.find_nans, bg='#5b86b0')
+        find_nan_button.pack()
+        find_nan_button.place(relx = 0.075, rely = 0.70, width=125, height=40, anchor = 'nw')
+
 
         apply_frame = LabelFrame(self.cleansing_screen, text="Select Fields")
         apply_frame.pack()
@@ -393,3 +407,7 @@ class Cleansing():
         self.show_columns_button = Button(apply_frame, text='Show Fields', command=self.bring_column_nums, bg='#5b86b0')
         self.show_columns_button.pack()
         self.show_columns_button.place(relx = 0.05, rely = 0.70, anchor = 'sw')
+
+        self.label_shape = Label(self.cleansing_screen, text = ("- Rows Uploaded."))
+        self.label_shape.pack()
+        self.label_shape.place(relx=0, rely=0.78)

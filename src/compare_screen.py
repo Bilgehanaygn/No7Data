@@ -1,6 +1,7 @@
 from tkinter import Label, LabelFrame, Button, Entry, END, Toplevel
 from tkinter.messagebox import showinfo, showerror
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import gc
 #import threading
@@ -70,22 +71,29 @@ class Compare:
                 except:
                     showerror("Error", "To download the files, please click on Matching and then Unmatching button.", parent=self.compare_screen)
 
+    def func(self, pct, allvalues):
+        absolute = int(round(pct / 100.*np.sum(allvalues)))
+
+        return "{:d}".format(absolute)
 
     def plot_graphs(self):
 
-        if(self.matched_exist):
-            
-            plot_matched_df = pd.DataFrame({'Matched' : [self.matched_df.shape[0]]}, index=['Matched'])
-            plot_matched_df.plot(kind='bar', title="Number of matching items")
+        if(self.matched_exist and not self.unmatched_exist):
+
+            plt.pie([self.matched_df.shape[0], 0], labels=['Matched', 'Unmatched'],
+            startangle=90, shadow=True,explode=(0.1, 0.1), autopct= lambda pct: self.func(pct, [self.matched_df.shape[0],0]))
+            plt.title('Counts of Matched and Unmatched\n', fontsize = 12)
+            plt.axis('equal')
+
+            plt.show()
         
-        if(self.unmatched_exist):
+        elif(self.unmatched_exist):
 
-            plot_unmatched_df= pd.DataFrame({'File Names:' :['File 1', 'File 2', 'File 3', 'File 4'],
-            'Values': self.unmatched_count})
-            plot_unmatched_df.set_index('File Names:', inplace=True)    
-            plot_unmatched_df.plot(kind='bar', title="Number of unmatching items for each file")
-
-        plt.show()
+            plt.pie([self.matched_df.shape[0], self.unmatched_df.shape[0]], labels=['Matched', 'Unmatched'],
+            startangle=90, shadow=True,explode=(0.1, 0.1), autopct= lambda pct: self.func(pct, [self.matched_df.shape[0], self.unmatched_df.shape[0]]))
+            plt.title('Counts of Matched and Unmatched\n', fontsize = 12)
+            plt.axis('equal')
+            plt.show()
 
     
     def find_matchings(self):

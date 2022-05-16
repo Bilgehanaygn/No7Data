@@ -2,6 +2,7 @@ from tkinter import filedialog, ttk, LabelFrame, Button, Scrollbar, Toplevel, HO
 from tkinter.messagebox import showinfo, showerror
 from tkinter.ttk import Progressbar
 import pandas as pd
+import numpy as np
 
 
 class FileManager():
@@ -12,7 +13,7 @@ class FileManager():
 
     def dialog_upload(self, f_label, parent_screen):
         """This Function will open the file explorer and assign the chosen file path to label_file"""
-        f_types = (('Excel or CSV', '*.xlsx'), ('Excel or CSV',"*.csv"), ('Excel or CSV',"*.xls"))
+        f_types = (('Excel, CSV or TXT', '*.xlsx'), ('Excel, CSV or TXT',"*.csv"), ('Excel, CSV or TXT',"*.txt"), ('Excel, CSV or TXT',"*.TXT"))
         filename = filedialog.askopenfilename(initialdir="/", parent=parent_screen, title="Select A File", filetypes= f_types)
         f_label["text"] = filename
         return None
@@ -41,19 +42,23 @@ class FileManager():
         # process data frame
         return len(df)
 
-    def load_data(self, f_label, parent_screen, show_success):
+    def load_data(self, f_label, parent_screen, show_success, apply_str=True):
         """If the file selected is valid this will load the file into the Treeview"""
         showinfo("Loading", "Excel file is loading, wait until loading is done.", parent=parent_screen)
         file_path = f_label["text"]
         try:
             filename = r"{}".format(file_path)
-            if filename[-4:] == ".csv":
+            if filename[-4:] == ".txt" or filename[-4:] == ".TXT":
+                df = pd.read_csv(filename, delimiter = '|')
+            elif filename[-4:] == ".csv":
                 df = pd.read_csv(filename)
-                
             else:
                 df = pd.read_excel(filename)
-            
-            df = df.applymap(str)
+            if(df.shape[0] >1000000000 or df.shape[1] > 10000):
+                raise Exception
+            if(apply_str):
+                df = df.applymap(str)
+                df = df.replace(r'^\s*$', 'nan', regex=True)
             if(show_success):
                 showinfo("Success", "Loaded successfully.", parent=parent_screen)
             return df
@@ -63,6 +68,9 @@ class FileManager():
             return None
         except FileNotFoundError:
             showerror("Information", f"Please select a file.", parent=parent_screen)
+            return None
+        except Exception:
+            showerror("Demo Version Limitations", "Demo version is limited with 100 rows and 10 columns.", parent=parent_screen)
             return None
 
 

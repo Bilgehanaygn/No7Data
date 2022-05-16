@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import use
 
-from src.duplicate_screen import search_screen
+import src.duplicate_screen.search_screen as search_screen
 use('TkAgg')
 
 
@@ -160,10 +160,10 @@ class DuplicateDetector():
 
         self.frame_col_nums = LabelFrame(self.duplicate_screen, text="Field Number -> Field Name")
         self.frame_col_nums.pack()
-        self.frame_col_nums.place(height=350, width=600, rely= 0, relx = 0.998, anchor="ne")
+        self.frame_col_nums.place(height=350, width=690, rely= 0, relx = 0.998, anchor="ne")
 
         for i in range(len(self.df.columns)):
-            label = Label(self.frame_col_nums, text = str(i+1) + " -> " + self.df.columns[i], anchor="nw")
+            label = Label(self.frame_col_nums, text = str(i+1) + " -> " + self.df.columns[i], anchor="nw", wraplength=150, height=1)
             if(i<15):
                 label.grid(sticky="w", row=i, column=0)
             elif(i>=15 and i<30):
@@ -174,6 +174,8 @@ class DuplicateDetector():
                 label.grid(sticky="w", row=i-45, column=3)
             elif(i>=60 and i<75):
                 label.grid(sticky="w", row=i-60, column=4)
+            elif(i>=75 and i<90):
+                label.grid(sticky="w", row=i-75, column=5)
 
 
 
@@ -207,7 +209,7 @@ class DuplicateDetector():
 
         self.open_area_1 = self.file_manager.create_open_area(self.duplicate_screen, 80, 300, 0.002, 0.60, callback=self.load_helper)
         self.tv_1 = self.file_manager.create_treeview(self.duplicate_screen, 350, 650, 0.00, 0.00, frame_text="Data Frame")
-        self.tv_result = self.file_manager.create_treeview(self.duplicate_screen, 300, 700, 1.00, 1.00, "se", "Duplicate Data")
+        self.tv_result = self.file_manager.create_treeview(self.duplicate_screen, 300, 692.5, 1.00, 1.00, "se", "Duplicate Data")
 
         self.buttons_frame = LabelFrame(self.duplicate_screen)
         self.buttons_frame.pack()
@@ -262,6 +264,3 @@ class DuplicateDetector():
         self.label2 = Label(self.duplicate_screen, text = ("Duplicate rows in dataset: -"))
         self.label2.pack()
         self.label2.place(relx=0.30, rely=0.67)
-
-
-        
